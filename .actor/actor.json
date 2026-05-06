@@ -4,19 +4,14 @@
   "title": "Web Search & Scrape by XCrawl",
   "description": "Search the web or scrape any URL using XCrawl residential proxy network. Supports Google-quality search results and full page scraping with markdown output.",
   "version": "1.0.0",
-  "meta": {
-    "templateId": "javascript-start",
-    "buildTag": "latest"
-  },
+  "meta": { "templateId": "javascript-start", "buildTag": "latest" },
   "storages": {
     "dataset": {
       "actorSpecification": 1,
       "views": {
         "results": {
           "title": "Results",
-          "transformation": {
-            "fields": ["title", "url", "snippet", "markdown", "summary", "status", "credits"]
-          }
+          "transformation": { "fields": ["title","url","snippet","markdown","summary","status","credits"] }
         }
       }
     }
@@ -27,39 +22,12 @@
       "type": "object",
       "required": ["action"],
       "properties": {
-        "action": {
-          "type": "string",
-          "enum": ["search", "scrape"],
-          "default": "search",
-          "description": "Action to perform: 
-\search\' or \scrape\'"
-        },
-        "query": {
-          "type": "string",
-          "maxLength": 200,
-          "description": "Search query (required for action=search)"
-        },
-        "url": {
-          "type": "string",
-          "maxLength": 2000,
-          "description": "URL to scrape (required for action=scrape)"
-        },
-        "location": {
-          "type": "string",
-          "default": "US",
-          "description": "Search location (e.g. \US\', \UK\', \CN\', \JP\')"
-        },
-        "language": {
-          "type": "string",
-          "default": "en",
-          "description": "Search language (e.g. \en\', \zh\', \ja\')"
-        },
-        "limit": {
-          "type": "integer",
-          "default": 5,
-          "maximum": 20,
-          "description": "Number of search results (1-20)"
-        }
+        "action": { "type": "string", "enum": ["search","scrape"], "default": "search", "description": "Action to perform: 'search' or 'scrape'" },
+        "query": { "type": "string", "maxLength": 200, "description": "Search query (required for action=search)" },
+        "url": { "type": "string", "maxLength": 2000, "description": "URL to scrape (required for action=scrape)" },
+        "location": { "type": "string", "default": "US", "description": "Search location (e.g. 'US','UK','CN','JP')" },
+        "language": { "type": "string", "default": "en", "description": "Search language (e.g. 'en','zh','ja')" },
+        "limit": { "type": "integer", "default": 5, "maximum": 20, "description": "Number of search results (1-20)" }
       }
     }
   },
