@@ -17,20 +17,16 @@
     }
   },
   "input": {
-    "type": "object",
     "title": "Input Configuration",
-    "schema": {
-      "type": "object",
-      "title": "Input Configuration",
-      "required": ["action"],
-      "properties": {
-        "action": { "type": "string", "title": "Action", "enum": ["search","scrape"], "default": "search", "description": "Action to perform: search or scrape" },
-        "query": { "type": "string", "title": "Search Query", "maxLength": 200, "description": "Search query (required for action=search)" },
-        "url": { "type": "string", "title": "URL", "maxLength": 2000, "description": "URL to scrape (required for action=scrape)" },
-        "location": { "type": "string", "title": "Location", "default": "US", "description": "Search location (e.g. US, UK, CN, JP)" },
-        "language": { "type": "string", "title": "Language", "default": "en", "description": "Search language (e.g. en, zh, ja)" },
-        "limit": { "type": "integer", "title": "Result Limit", "default": 5, "maximum": 20, "description": "Number of search results (1-20)" }
-      }
+    "type": "object",
+    "required": ["action"],
+    "properties": {
+      "action": { "type": "string", "title": "Action", "enum": ["search","scrape"], "default": "search", "description": "Action to perform: search or scrape" },
+      "query": { "type": "string", "title": "Search Query", "maxLength": 200, "description": "Search query (required for action=search)" },
+      "url": { "type": "string", "title": "URL", "maxLength": 2000, "description": "URL to scrape (required for action=scrape)" },
+      "location": { "type": "string", "title": "Location", "default": "US", "description": "Search location (e.g. US, UK, CN, JP)" },
+      "language": { "type": "string", "title": "Language", "default": "en", "description": "Search language (e.g. en, zh, ja)" },
+      "limit": { "type": "integer", "title": "Result Limit", "default": 5, "maximum": 20, "description": "Number of search results (1-20)" }
     }
   },
   "runType": "RUN_URL",
