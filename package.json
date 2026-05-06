@@ -1,0 +1,14 @@
+{
+  "name": "xcrawl-search-scrape",
+  "version": "1.0.0",
+  "description": "Web Search & Scrape powered by XCrawl API",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "apify": "^3.1.0",
+    "got-scraping": "^4.0.0"
+  },
+  "scripts": {
+    "start": "node src/main.js"
+  }
+}
