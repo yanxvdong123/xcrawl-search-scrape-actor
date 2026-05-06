@@ -1,10 +1,8 @@
 import { Actor } from 'apify';
 import * as gotScraping from 'got-scraping';
 
-const got = gotScraping.default?.post || gotScraping.got?.post;
-if (!got) {
-  throw new Error('Cannot find got-scraping post method. Check import.');
-}
+// got-scraping exports 'got' as a named export, which is a callable function
+const got = gotScraping.got;
 
 const XCRAWL_API = 'https://run.xcrawl.com/v1';
 const XCRAWL_KEY = process.env.XCRAWL_API_KEY || '';
@@ -18,9 +16,6 @@ if (!XCRAWL_KEY) {
   throw new Error('XCRAWL_API_KEY environment variable is required');
 }
 
-/**
- * Search the web via XCrawl Search API
- */
 async function doSearch(q) {
   const res = await got(`${XCRAWL_API}/search`, {
     json: { query: q, location, language, limit: Math.min(limit, 20) },
@@ -37,9 +32,6 @@ async function doSearch(q) {
   }));
 }
 
-/**
- * Scrape a single URL via XCrawl Scrape API
- */
 async function doScrape(u) {
   const res = await got(`${XCRAWL_API}/scrape`, {
     json: { url: u, output: { formats: ['markdown', 'summary'] } },
