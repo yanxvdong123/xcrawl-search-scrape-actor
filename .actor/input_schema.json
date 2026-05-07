@@ -62,6 +62,27 @@
       "default": "markdown,summary",
       "description": "Comma-separated output formats. Options: markdown, summary, html. (e.g. 'markdown,summary')",
       "editor": "textfield"
+    },
+    "render": {
+      "title": "Browser Rendering (Anti-Detection)",
+      "type": "boolean",
+      "default": true,
+      "description": "Enable headless browser rendering to bypass JavaScript-based anti-bot protections. Recommended for SPAs, login walls, and dynamic content.",
+      "editor": "checkbox"
+    },
+    "proxy": {
+      "title": "Proxy Rotation (Anti-Detection)",
+      "type": "boolean",
+      "default": true,
+      "description": "Use XCrawl's proxy network to rotate IPs and avoid rate limiting / IP blocking.",
+      "editor": "checkbox"
+    },
+    "screenshot": {
+      "title": "Take Screenshot",
+      "type": "boolean",
+      "default": false,
+      "description": "Capture a screenshot of each scraped page (requires render=true).",
+      "editor": "checkbox"
     }
   }
 }
