@@ -2,26 +2,89 @@
   "actorSpecification": 1,
   "name": "xcrawl-search-scrape",
   "title": "Web Search & Scrape by XCrawl",
-  "description": "Search the web or scrape any URL using XCrawl residential proxy network. Supports Google-quality search results and full page scraping with markdown output.",
+  "description": "Search the web or scrape any URL using XCrawl's residential proxy network. Supports Google-quality search results and full page scraping with markdown output.",
   "version": "1.0.0",
-  "meta": { "templateId": "javascript-start", "buildTag": "latest" },
+  "meta": {
+    "templateId": "javascript-start",
+    "buildTag": "latest"
+  },
   "storages": {
     "dataset": {
       "actorSpecification": 1,
       "views": {
         "results": {
           "title": "Results",
-          "transformation": { "fields": ["title","url","snippet","markdown","summary","status","credits"] }
+          "transformation": {
+            "fields": ["title", "url", "snippet", "markdown", "summary", "status", "credits"]
+          }
         }
       }
     }
   },
-  "input": "./input_schema.json",
+  "input": {
+    "type": "object",
+    "schema": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["search", "scrape"],
+          "default": "search",
+          "description": "Action to perform: 'search' or 'scrape'"
+        },
+        "query": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Search query (required for action=search)"
+        },
+        "url": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "URL to scrape (required for action=scrape)"
+        },
+        "location": {
+          "type": "string",
+          "default": "US",
+          "description": "Search location code (e.g. 'US', 'UK', 'CN', 'JP')"
+        },
+        "language": {
+          "type": "string",
+          "default": "en",
+          "description": "Search language code (e.g. 'en', 'zh', 'ja')"
+        },
+        "limit": {
+          "type": "integer",
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "description": "Number of search results to return and scrape (1-50)"
+        },
+        "withContent": {
+          "type": "boolean",
+          "default": true,
+          "description": "When true, automatically fetches full page content (markdown + summary) for each search result. When false, returns only title/url/snippet."
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["markdown", "summary", "html"]
+          },
+          "default": ["markdown", "summary"],
+          "description": "Output formats for page scraping. 'markdown' gives full text, 'summary' gives AI-generated summary."
+        }
+      }
+    }
+  },
   "runType": "RUN_URL",
   "minMemoryMbytes": 256,
   "maxMemoryMbytes": 512,
   "buildTag": "latest",
   "environmentVariables": {
-    "XCRAWL_API_KEY": ""
+    "XCRAWL_API_KEY": {
+      "secret": true,
+      "description": "Your XCrawl API key from https://dash.xcrawl.com"
+    }
   }
 }
