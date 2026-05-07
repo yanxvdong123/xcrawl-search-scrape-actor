@@ -66,15 +66,8 @@
     "render": {
       "title": "Browser Rendering (Anti-Detection)",
       "type": "boolean",
-      "default": true,
-      "description": "Enable headless browser rendering to bypass JavaScript-based anti-bot protections. Recommended for SPAs, login walls, and dynamic content.",
-      "editor": "checkbox"
-    },
-    "proxy": {
-      "title": "Proxy Rotation (Anti-Detection)",
-      "type": "boolean",
-      "default": true,
-      "description": "Use XCrawl's proxy network to rotate IPs and avoid rate limiting / IP blocking.",
+      "default": false,
+      "description": "Enable browser-based JS rendering to bypass DataDome/Cloudflare. Slower but more anti-bot effective. Auto-retries blocked pages with rendering.",
       "editor": "checkbox"
     },
     "screenshot": {
