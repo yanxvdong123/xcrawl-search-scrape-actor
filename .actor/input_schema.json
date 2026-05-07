@@ -58,15 +58,10 @@
     },
     "formats": {
       "title": "Output Formats",
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": ["markdown", "summary", "html"]
-      },
-      "default": ["markdown", "summary"],
-      "uniqueItems": true,
-      "description": "Output formats for page scraping. 'markdown' gives full text, 'summary' gives AI-generated summary.",
-      "editor": "stringList"
+      "type": "string",
+      "default": "markdown,summary",
+      "description": "Comma-separated output formats. Options: markdown, summary, html. (e.g. 'markdown,summary')",
+      "editor": "textfield"
     }
   }
 }
