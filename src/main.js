@@ -1,11 +1,13 @@
 import { Actor, log } from 'apify';
 import * as gotScraping from 'got-scraping';
+import pLimit from 'p-limit';
 
 // got-scraping exports 'got' as a named export
 const got = gotScraping.got;
 
 const XCRAWL_API = 'https://run.xcrawl.com/v1';
 const XCRAWL_KEY = process.env.XCRAWL_API_KEY || '';
+const MAX_CONCURRENCY = 5; // max parallel scrape requests
 
 await Actor.init();
 
@@ -35,9 +37,8 @@ log.info('XCrawl Actor started', {
   withContent, formats: formatsList, render, proxy, screenshot,
 });
 
-// ====== XCrawl API helpers ======
-
-async function xcrawlCall(endpoint, body, timeoutMs = 30000) {
+// ====== XCrawl API helper ======
+async function xcrawlCall(endpoint, body, timeoutMs = 60000) {
   const res = await got(`${XCRAWL_API}/${endpoint}`, {
     method: 'POST',
     json: body,
@@ -55,28 +56,52 @@ async function xcrawlCall(endpoint, body, timeoutMs = 30000) {
   return parsed;
 }
 
-// ====== Scrape a single URL with anti-detection ======
-async function doScrape(u) {
-  log.info(`Scraping: ${u}`);
-
-  // Build scrape request body with minimal parameters (XCrawl handles anti-detection internally)
-  const scrapeBody = {
+// ====== Build scrape options ======
+function buildScrapeOptions(u, enableRender = false) {
+  // Core body â€” clean URL + formats
+  const body = {
     url: u,
     output: { formats: formatsList },
+    request: {
+      only_main_content: true,
+      block_ads: true,
+      device: 'desktop',
+    },
+    proxy: { location },
   };
 
-  // Optional screenshot (XCrawl captures a screenshot when requested)
-  if (screenshot) {
-    scrapeBody.screenshot = true;
+  // Enable JS rendering for anti-scraping bypass
+  if (enableRender || render) {
+    body.js_render = {
+      enabled: true,
+      wait_until: 'networkidle',
+      viewport: { width: 1920, height: 1080 },
+    };
   }
 
-  const res = await xcrawlCall('scrape', scrapeBody, 45000);
+  // Screenshot
+  if (screenshot) {
+    body.output.screenshot = 'viewport';
+    if (!body.output.formats.includes('screenshot')) {
+      body.output.formats.push('screenshot');
+    }
+  }
+
+  return body;
+}
+
+// ====== Scrape a single URL ======
+async function doScrape(u, retryRender = false) {
+  log.info(`Scraping: ${u} (render=${retryRender || render})`);
+
+  const body = buildScrapeOptions(u, retryRender);
+  const res = await xcrawlCall('scrape', body, 60000);
 
   const data = res.data || res;
-  const markdown = (data.markdown || '').slice(0, 100000); // allow up to 100K chars
+  const markdown = (data.markdown || '').slice(0, 100000);
   const summary = data.summary || data.description || '';
 
-  log.info(`Scraped OK — ${markdown.length} chars markdown, ${summary.length} chars summary`);
+  log.info(`Scraped OK ${u} â€” ${markdown.length} chars markdown, ${summary.length} chars summary`);
 
   return {
     url: u,
@@ -88,11 +113,53 @@ async function doScrape(u) {
   };
 }
 
+// ====== Scrape with auto-retry on empty content ======
+async function doScrapeWithRetry(u) {
+  // First attempt: without JS rendering (faster)
+  let result;
+  try {
+    result = await doScrape(u, false);
+  } catch (err) {
+    log.warning(`First attempt failed for ${u}: ${err.message}`);
+    // Retry with rendering
+    try {
+      result = await doScrape(u, true);
+    } catch (err2) {
+      log.warning(`Retry with render also failed for ${u}: ${err2.message}`);
+      return {
+        url: u, status: 'failed',
+        markdown: '', summary: '',
+        screenshot: '', credits: '',
+        scrapeError: err2.message,
+      };
+    }
+  }
+
+  // If content is missing or looks like captcha/block page, retry with rendering
+  const hasContent = (result.markdown.length > 100)
+    || (result.markdown && !result.markdown.includes('captcha-delivery.com')
+        && !result.markdown.includes('blocked')
+        && !result.markdown.includes('network security'));
+
+  if (!hasContent && !render) {
+    log.warning(`Content seems blocked/empty for ${u}, retrying with JS rendering...`);
+    try {
+      const retryResult = await doScrape(u, true);
+      if (retryResult.markdown.length > 50) {
+        return retryResult;
+      }
+    } catch (err) {
+      log.warning(`Render retry also failed for ${u}: ${err.message}`);
+    }
+  }
+
+  return result;
+}
+
 // ====== Search ======
 async function doSearch(q) {
-  log.info(`Searching: "${q}" (limit ${limit}, location ${location})`);
+  log.info(`Searching: "${q}" (limit=${limit}, location=${location})`);
 
-  // Step 1: search via XCrawl
   const res = await xcrawlCall('search', {
     query: q,
     location,
@@ -104,48 +171,54 @@ async function doSearch(q) {
   log.info(`Search returned ${items.length} raw results`);
 
   if (items.length === 0) {
-    log.warning('No search results — returning empty set');
+    log.warning('No search results');
     return [];
   }
 
-  // Step 2: extract basic info from search results
-  const basicResults = items.slice(0, Math.min(limit, 50)).map((item, i) => ({
+  // Build basic results
+  const basicResults = items.slice(0, Math.min(limit, 50)).map((item) => ({
     title: item.title || '',
     url: item.url || '',
-    snippet: item.snippet || item.content || item.desc || '',
+    snippet: item.description || item.snippet || item.content || '',
   }));
 
-  // Step 3: if withContent is enabled, fetch full content for each
-  if (!withContent) return basicResults;
-
-  log.info(`Fetching full content for ${basicResults.length} results (serial to avoid rate limits)`);
-  const enrichedResults = [];
-
-  for (let i = 0; i < basicResults.length; i++) {
-    const basic = basicResults[i];
-    try {
-      const full = await doScrape(basic.url);
-      enrichedResults.push({
-        ...basic,
-        markdown: full.markdown,
-        summary: full.summary,
-        scrapeStatus: full.status,
-        screenshot: full.screenshot,
-        credits: full.credits,
-      });
-      log.info(`[${i + 1}/${basicResults.length}] Enriched: "${(basic.title || '').slice(0, 60)}"`);
-    } catch (err) {
-      // If enriched scrape fails, still provide the basic result
-      log.warning(`[${i + 1}/${basicResults.length}] Scrape failed for "${basic.url}": ${err.message}`);
-      enrichedResults.push({
-        ...basic,
-        markdown: '',
-        summary: '',
-        scrapeStatus: 'failed',
-        scrapeError: err.message,
-      });
-    }
+  // Fast path: no content enrichment
+  if (!withContent) {
+    log.info(`Returning ${basicResults.length} basic results (withContent=false)`);
+    return basicResults;
   }
+
+  // Concurrent enrichment with concurrency limit
+  log.info(`Fetching content for ${basicResults.length} results (concurrency=${MAX_CONCURRENCY})`);
+  const limit = pLimit(MAX_CONCURRENCY);
+
+  const tasks = basicResults.map((basic, i) =>
+    limit(async () => {
+      try {
+        const full = await doScrapeWithRetry(basic.url);
+        log.info(`[${i + 1}/${basicResults.length}] Enriched: "${(basic.title || '').slice(0, 60)}"`);
+        return {
+          ...basic,
+          markdown: full.markdown,
+          summary: full.summary,
+          scrapeStatus: full.status,
+          screenshot: full.screenshot,
+          credits: full.credits,
+          scrapeError: full.scrapeError || null,
+        };
+      } catch (err) {
+        log.warning(`[${i + 1}/${basicResults.length}] All attempts failed for "${basic.url}": ${err.message}`);
+        return {
+          ...basic,
+          markdown: '', summary: '', scrapeStatus: 'failed', scrapeError: err.message,
+        };
+      }
+    })
+  );
+
+  const enrichedResults = await Promise.all(tasks);
+  const successCount = enrichedResults.filter(r => r.markdown && r.markdown.length > 50).length;
+  log.info(`Enriched ${successCount}/${enrichedResults.length} results with content`);
 
   return enrichedResults;
 }
@@ -161,7 +234,7 @@ switch (action) {
     break;
   case 'scrape':
     if (!url) throw new Error('url is required for scrape action');
-    result = await doScrape(url);
+    result = await doScrapeWithRetry(url);
     break;
   default:
     throw new Error(`Unknown action: "${action}". Use "search" or "scrape".`);
@@ -170,6 +243,6 @@ switch (action) {
 await Actor.pushData(result);
 
 const count = Array.isArray(result) ? result.length : 1;
-log.info(`Done — pushed ${count} result(s) to dataset`);
+log.info(`Done â€” pushed ${count} result(s) to dataset`);
 
 await Actor.exit();
