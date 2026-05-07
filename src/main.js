@@ -18,8 +18,12 @@ const {
   language = 'en',
   limit = 10,
   withContent = true,   // search mode: auto-fetch full content for each result
-  formats = ['markdown', 'summary'],
+  formats: formatsRaw = 'markdown,summary',
 } = input;
+
+// Parse comma-separated formats string into array
+let formats = Array.isArray(formatsRaw) ? formatsRaw : formatsRaw.split(',').map(f => f.trim()).filter(Boolean);
+if (formats.length === 0) formats = ['markdown', 'summary'];
 
 if (!XCRAWL_KEY) throw new Error('XCRAWL_API_KEY environment variable is required');
 
