@@ -59,32 +59,18 @@ async function xcrawlCall(endpoint, body, timeoutMs = 30000) {
 async function doScrape(u) {
   log.info(`Scraping: ${u}`);
 
-  // Build scrape request body — leverage XCrawl's anti-detection capabilities
+  // Build scrape request body with minimal parameters (XCrawl handles anti-detection internally)
   const scrapeBody = {
     url: u,
     output: { formats: formatsList },
   };
 
-  // Enable headless browser rendering for JS-heavy pages (bypasses many anti-bot checks)
-  if (render) {
-    scrapeBody.render = {
-      headless: true,
-      waitUntil: 'networkidle',
-      timeout: 20000,
-    };
-  }
-
-  // Use XCrawl proxy rotation (helps avoid IP-based blocking)
-  if (proxy) {
-    scrapeBody.proxy = true;
-  }
-
-  // Optional screenshot
+  // Optional screenshot (XCrawl captures a screenshot when requested)
   if (screenshot) {
     scrapeBody.screenshot = true;
   }
 
-  const res = await xcrawlCall('scrape', scrapeBody, 60000); // 60s timeout for render mode
+  const res = await xcrawlCall('scrape', scrapeBody, 45000);
 
   const data = res.data || res;
   const markdown = (data.markdown || '').slice(0, 100000); // allow up to 100K chars
