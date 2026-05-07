@@ -9,31 +9,36 @@
       "type": "string",
       "enum": ["search", "scrape"],
       "default": "search",
-      "description": "Action to perform: 'search' for web search, 'scrape' for single page extraction"
+      "description": "Action to perform: 'search' for web search, 'scrape' for single page extraction",
+      "editor": "select"
     },
     "query": {
       "title": "Search Query",
       "type": "string",
       "maxLength": 200,
-      "description": "Search query (required for action=search)"
+      "description": "Search query (required for action=search)",
+      "editor": "textfield"
     },
     "url": {
       "title": "URL",
       "type": "string",
       "maxLength": 2000,
-      "description": "URL to scrape (required for action=scrape)"
+      "description": "URL to scrape (required for action=scrape)",
+      "editor": "textfield"
     },
     "location": {
       "title": "Location",
       "type": "string",
       "default": "US",
-      "description": "Search location code (e.g. 'US', 'UK', 'CN', 'JP')"
+      "description": "Search location code (e.g. 'US', 'UK', 'CN', 'JP')",
+      "editor": "textfield"
     },
     "language": {
       "title": "Language",
       "type": "string",
       "default": "en",
-      "description": "Search language code (e.g. 'en', 'zh', 'ja')"
+      "description": "Search language code (e.g. 'en', 'zh', 'ja')",
+      "editor": "textfield"
     },
     "limit": {
       "title": "Result Limit",
@@ -41,13 +46,15 @@
       "default": 10,
       "maximum": 50,
       "minimum": 1,
-      "description": "Number of search results to return (1-50). Each result's full content will be fetched automatically."
+      "description": "Number of search results to return (1-50). Each result's full content will be fetched automatically.",
+      "editor": "number"
     },
     "withContent": {
       "title": "Fetch Full Content",
       "type": "boolean",
       "default": true,
-      "description": "When enabled, automatically fetches full page content (markdown + summary) for each search result. When disabled, returns only title/url/snippet."
+      "description": "When enabled, automatically fetches full page content (markdown + summary) for each search result.",
+      "editor": "checkbox"
     },
     "formats": {
       "title": "Output Formats",
@@ -58,7 +65,8 @@
       },
       "default": ["markdown", "summary"],
       "uniqueItems": true,
-      "description": "Output formats for page scraping. 'markdown' gives full text, 'summary' gives AI-generated summary."
+      "description": "Output formats for page scraping. 'markdown' gives full text, 'summary' gives AI-generated summary.",
+      "editor": "stringList"
     }
   }
 }
