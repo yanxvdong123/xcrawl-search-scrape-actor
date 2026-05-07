@@ -18,6 +18,7 @@ if (!XCRAWL_KEY) {
 
 async function doSearch(q) {
   const res = await got(`${XCRAWL_API}/search`, {
+    method: 'POST',
     json: { query: q, location, language, limit: Math.min(limit, 20) },
     headers: { 'Authorization': `Bearer ${XCRAWL_KEY}` },
     responseType: 'json',
@@ -34,6 +35,7 @@ async function doSearch(q) {
 
 async function doScrape(u) {
   const res = await got(`${XCRAWL_API}/scrape`, {
+    method: 'POST',
     json: { url: u, output: { formats: ['markdown', 'summary'] } },
     headers: { 'Authorization': `Bearer ${XCRAWL_KEY}` },
     responseType: 'json',
