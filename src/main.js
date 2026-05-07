@@ -17,17 +17,23 @@ const {
   location = 'US',
   language = 'en',
   limit = 10,
-  withContent = true,   // search mode: auto-fetch full content for each result
-  formats: formatsRaw = 'markdown,summary',
+  withContent = true,
+  formats = 'markdown,summary',
+  render = false,
+  proxy = true,
+  screenshot = false,
 } = input;
 
 // Parse comma-separated formats string into array
-let formats = Array.isArray(formatsRaw) ? formatsRaw : formatsRaw.split(',').map(f => f.trim()).filter(Boolean);
-if (formats.length === 0) formats = ['markdown', 'summary'];
+let formatsList = Array.isArray(formats) ? formats : String(formats).split(',').map(f => f.trim()).filter(Boolean);
+if (formatsList.length === 0) formatsList = ['markdown', 'summary'];
 
 if (!XCRAWL_KEY) throw new Error('XCRAWL_API_KEY environment variable is required');
 
-log.info('XCrawl Actor started', { action, query, url, location, language, limit, withContent, formats });
+log.info('XCrawl Actor started', {
+  action, query, url, location, language, limit,
+  withContent, formats: formatsList, render, proxy, screenshot,
+});
 
 // ====== XCrawl API helpers ======
 
@@ -35,10 +41,13 @@ async function xcrawlCall(endpoint, body, timeoutMs = 30000) {
   const res = await got(`${XCRAWL_API}/${endpoint}`, {
     method: 'POST',
     json: body,
-    headers: { Authorization: `Bearer ${XCRAWL_KEY}` },
+    headers: {
+      Authorization: `Bearer ${XCRAWL_KEY}`,
+      'Content-Type': 'application/json',
+    },
     responseType: 'json',
     timeout: { request: timeoutMs },
-    retry: { limit: 0 }, // XCrawl charges per request, so no auto-retry
+    retry: { limit: 0 },
   });
 
   const parsed = typeof res.body === 'object' ? res.body : JSON.parse(res.body);
@@ -46,26 +55,49 @@ async function xcrawlCall(endpoint, body, timeoutMs = 30000) {
   return parsed;
 }
 
-// ====== Scrape a single URL ======
+// ====== Scrape a single URL with anti-detection ======
 async function doScrape(u) {
   log.info(`Scraping: ${u}`);
 
-  const res = await xcrawlCall('scrape', {
+  // Build scrape request body — leverage XCrawl's anti-detection capabilities
+  const scrapeBody = {
     url: u,
-    output: { formats },
-  }, 45000);
+    output: { formats: formatsList },
+  };
+
+  // Enable headless browser rendering for JS-heavy pages (bypasses many anti-bot checks)
+  if (render) {
+    scrapeBody.render = {
+      headless: true,
+      waitUntil: 'networkidle',
+      timeout: 20000,
+    };
+  }
+
+  // Use XCrawl proxy rotation (helps avoid IP-based blocking)
+  if (proxy) {
+    scrapeBody.proxy = true;
+  }
+
+  // Optional screenshot
+  if (screenshot) {
+    scrapeBody.screenshot = true;
+  }
+
+  const res = await xcrawlCall('scrape', scrapeBody, 60000); // 60s timeout for render mode
 
   const data = res.data || res;
-  const markdown = (data.markdown || '').slice(0, 50000);
+  const markdown = (data.markdown || '').slice(0, 100000); // allow up to 100K chars
   const summary = data.summary || data.description || '';
 
-  log.info(`Scraped OK â€” ${markdown.length} chars markdown, ${summary.length} chars summary`);
+  log.info(`Scraped OK — ${markdown.length} chars markdown, ${summary.length} chars summary`);
 
   return {
     url: u,
     status: res.status || 'completed',
     markdown,
     summary,
+    screenshot: data.screenshot || '',
     credits: data.credits_used || res.total_credits_used || '',
   };
 }
@@ -74,7 +106,7 @@ async function doScrape(u) {
 async function doSearch(q) {
   log.info(`Searching: "${q}" (limit ${limit}, location ${location})`);
 
-  // Step 1: search
+  // Step 1: search via XCrawl
   const res = await xcrawlCall('search', {
     query: q,
     location,
@@ -86,11 +118,11 @@ async function doSearch(q) {
   log.info(`Search returned ${items.length} raw results`);
 
   if (items.length === 0) {
-    log.warning('No search results â€” returning empty set');
+    log.warning('No search results — returning empty set');
     return [];
   }
 
-  // Step 2: extract the basic info from search results
+  // Step 2: extract basic info from search results
   const basicResults = items.slice(0, Math.min(limit, 50)).map((item, i) => ({
     title: item.title || '',
     url: item.url || '',
@@ -112,10 +144,12 @@ async function doSearch(q) {
         markdown: full.markdown,
         summary: full.summary,
         scrapeStatus: full.status,
+        screenshot: full.screenshot,
         credits: full.credits,
       });
-      log.info(`[${i + 1}/${basicResults.length}] Enriched: "${basic.title}"`);
+      log.info(`[${i + 1}/${basicResults.length}] Enriched: "${(basic.title || '').slice(0, 60)}"`);
     } catch (err) {
+      // If enriched scrape fails, still provide the basic result
       log.warning(`[${i + 1}/${basicResults.length}] Scrape failed for "${basic.url}": ${err.message}`);
       enrichedResults.push({
         ...basic,
@@ -150,6 +184,6 @@ switch (action) {
 await Actor.pushData(result);
 
 const count = Array.isArray(result) ? result.length : 1;
-log.info(`Done â€” pushed ${count} result(s) to dataset`);
+log.info(`Done — pushed ${count} result(s) to dataset`);
 
 await Actor.exit();
