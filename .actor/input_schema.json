@@ -1,14 +1,64 @@
 {
-  "schemaVersion": 1,
-  "title": "Input Configuration",
+  "title": "Web Search & Scrape by XCrawl",
   "type": "object",
+  "schemaVersion": 1,
   "required": ["action"],
   "properties": {
-    "action": { "type": "string", "title": "Action", "enum": ["search","scrape"], "default": "search", "description": "Action to perform: search or scrape", "editor": "select" },
-    "query": { "type": "string", "title": "Search Query", "maxLength": 200, "description": "Search query (required for action=search)", "editor": "textfield" },
-    "url": { "type": "string", "title": "URL", "maxLength": 2000, "description": "URL to scrape (required for action=scrape)", "editor": "textfield" },
-    "location": { "type": "string", "title": "Location", "default": "US", "description": "Search location (e.g. US, UK, CN, JP)", "editor": "textfield" },
-    "language": { "type": "string", "title": "Language", "default": "en", "description": "Search language (e.g. en, zh, ja)", "editor": "textfield" },
-    "limit": { "type": "integer", "title": "Result Limit", "default": 5, "maximum": 20, "description": "Number of search results (1-20)", "editor": "number" }
+    "action": {
+      "title": "Action",
+      "type": "string",
+      "enum": ["search", "scrape"],
+      "default": "search",
+      "description": "Action to perform: 'search' for web search, 'scrape' for single page extraction"
+    },
+    "query": {
+      "title": "Search Query",
+      "type": "string",
+      "maxLength": 200,
+      "description": "Search query (required for action=search)"
+    },
+    "url": {
+      "title": "URL",
+      "type": "string",
+      "maxLength": 2000,
+      "description": "URL to scrape (required for action=scrape)"
+    },
+    "location": {
+      "title": "Location",
+      "type": "string",
+      "default": "US",
+      "description": "Search location code (e.g. 'US', 'UK', 'CN', 'JP')"
+    },
+    "language": {
+      "title": "Language",
+      "type": "string",
+      "default": "en",
+      "description": "Search language code (e.g. 'en', 'zh', 'ja')"
+    },
+    "limit": {
+      "title": "Result Limit",
+      "type": "integer",
+      "default": 10,
+      "maximum": 50,
+      "minimum": 1,
+      "description": "Number of search results to return (1-50). Each result's full content will be fetched automatically."
+    },
+    "withContent": {
+      "title": "Fetch Full Content",
+      "type": "boolean",
+      "default": true,
+      "description": "When enabled, automatically fetches full page content (markdown + summary) for each search result. When disabled, returns only title/url/snippet."
+    },
+    "formats": {
+      "title": "Output Formats",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["markdown", "summary", "html"]
+      },
+      "default": ["markdown", "summary"],
+      "uniqueItems": true,
+      "description": "Output formats for page scraping. 'markdown' gives full text, 'summary' gives AI-generated summary."
+    }
   }
 }
