@@ -1,4 +1,4 @@
-import { Actor } from 'apify';
+import { Actor, log } from 'apify';
 import * as gotScraping from 'got-scraping';
 
 // got-scraping exports 'got' as a named export, which is a callable function
@@ -50,7 +50,7 @@ async function doScrape(u) {
   };
 }
 
-Actor.log.info('XCrawl Actor started', { action, query, url });
+log.info('XCrawl Actor started', { action, query, url });
 
 let result;
 switch (action) {
@@ -68,6 +68,6 @@ switch (action) {
 }
 
 await Actor.pushData(result);
-Actor.log.info('Done', { count: Array.isArray(result) ? result.length : 1 });
+log.info('Done', { count: Array.isArray(result) ? result.length : 1 });
 
 await Actor.exit();
