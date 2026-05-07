@@ -80,11 +80,5 @@
   "runType": "RUN_URL",
   "minMemoryMbytes": 256,
   "maxMemoryMbytes": 512,
-  "buildTag": "latest",
-  "environmentVariables": {
-    "XCRAWL_API_KEY": {
-      "secret": true,
-      "description": "Your XCrawl API key from https://dash.xcrawl.com"
-    }
-  }
+  "buildTag": "latest"
 }
